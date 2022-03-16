@@ -22,11 +22,59 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="lyrics_reader_example">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+<style type="text/css">
 
+    .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        -ms-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+    }
+
+    .loader {
+        border: 6px solid #4696ec;
+        border-radius: 50%;
+        border-left: 6px solid white;
+        width: 40px;
+        height: 40px;
+        -webkit-animation: spin 1s linear infinite;
+        animation: spin 1s linear infinite;
+    }
+
+    @-webkit-keyframes spin {
+        0% {
+            -webkit-transform: rotate(0deg);
+        }
+
+        100% {
+            -webkit-transform: rotate(360deg);
+        }
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+</style>
   <title>lyrics_reader_example</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+	
+	  <div class="loading">
+	    <div class="loader"></div>
+	  </div>
   <!-- This script installs service_worker.js to provide PWA functionality to
        application. For more information, see:
        https://developers.google.com/web/fundamentals/primers/service-workers -->
@@ -43,6 +91,12 @@
       scriptTag.type = 'application/javascript';
       document.body.append(scriptTag);
     }
+	
+	window.addEventListener("flutter-first-frame",function(){ 
+		console.log('flutter app loaded.');
+		var el = document.getElementsByClassName('loading')[0];
+		el.remove();
+	 });
 
     if ('serviceWorker' in navigator) {
       // Service workers are supported. Use them.
