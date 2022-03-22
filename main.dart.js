@@ -56254,12 +56254,15 @@ A.Ts.prototype={
 $0(){return new A.dU()},
 $S:344}
 A.Co.prototype={
-yZ(a){var s,r,q,p,o
-for(s=this.a,r=s.length,q=0;q<r;++q){p=s[q]
-o=p.c
-if(a>=(o==null?0:o)){o=p.d
-o=a<(o==null?0:o)}else o=!1
-if(o)return q}return Math.max(r-1,0)},
+yZ(a){var s,r,q,p,o,n
+for(s=this.a,r=s.length,q=0,p=0;p<r;++p){o=s[p]
+n=o.c
+if(a>=(n==null?0:n)){n=o.d
+n=a<(n==null?0:n)}else n=!1
+if(n)return p
+q=o.d
+if(q==null)q=0}if(a>q)return r-1
+else return 0},
 Fz(a,b,c){var s,r,q,p,o
 if(a===0)return 0
 s=this.a
