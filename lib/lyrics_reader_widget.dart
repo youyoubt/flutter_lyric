@@ -174,7 +174,7 @@ class LyricReaderState extends State<LyricsReader>
         }
       });
     animate
-      ..addListener(() {
+      .addListener(() {
         var value = animate.value;
         lyricPaint.lyricOffset = value.clamp(lyricPaint.maxOffset, 0);
       });
@@ -481,7 +481,9 @@ class LyricReaderState extends State<LyricsReader>
     double? firstBegin;
     final spans = line.spanList ?? line.defaultSpanList;
     final blankTime = (line.startTime ?? 0) - widget.position;
+    int allDuration = 0;
     if (blankTime > 0) {
+      allDuration += blankTime;
       items.add(TweenSequenceItem(
           tween: Tween(begin: 0.0, end: 0.0), weight: blankTime.toDouble()));
     }
@@ -499,16 +501,19 @@ class LyricReaderState extends State<LyricsReader>
       items.add(TweenSequenceItem(
           tween: Tween(begin: begin, end: width += element.drawWidth),
           weight: element.duration.toDouble()));
+      allDuration += element.duration;
     }
     disposeHighlight();
     if (items.isEmpty) {
       lyricPaint.highlightWidth = width;
       return;
     }
-    final highlightDuration = (line.endTime ?? 0) - widget.position;
+    // final highlightDuration = (line.endTime ?? 0) - widget.position;
+    final highlightDuration = allDuration;
     _highlightController = AnimationController(
       duration:
           Duration(milliseconds: highlightDuration > 0 ? highlightDuration : 0),
+      // duration: Duration(milliseconds: 300),
       vsync: this,
     );
     var animate = TweenSequence(items)
