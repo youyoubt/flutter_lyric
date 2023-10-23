@@ -30,6 +30,7 @@ class LyricsReader extends StatefulWidget {
   final VoidCallback? onTap;
   final SelectLineBuilder? selectLineBuilder;
   final EmptyBuilder? emptyBuilder;
+  final Map<int, List<LyricRemarkInfo>>? remarkMap;
 
   @override
   State<StatefulWidget> createState() => LyricReaderState();
@@ -43,6 +44,7 @@ class LyricsReader extends StatefulWidget {
     LyricUI? lyricUi,
     this.onTap,
     this.playing,
+    this.remarkMap,
     this.emptyBuilder,
   }) : ui = lyricUi ?? UINetease();
 }
@@ -95,7 +97,8 @@ class LyricReaderState extends State<LyricsReader>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.size?.toString() != widget.size?.toString() ||
         oldWidget.model != widget.model ||
-        oldWidget.ui != widget.ui) {
+        oldWidget.ui != widget.ui ||
+        oldWidget.remarkMap != widget.remarkMap) {
       lyricPaint.model = widget.model;
       lyricPaint.lyricUI = widget.ui;
       handleSize();
@@ -184,6 +187,7 @@ class LyricReaderState extends State<LyricsReader>
   ///calculate all line draw info
   refreshLyricHeight(Size size) {
     lyricPaint.clearCache();
+    int lineIndex = 0;
     widget.model?.lyrics.forEach((element) {
       var drawInfo = LyricDrawInfo()
         ..playingExtTextPainter = getTextPaint(
@@ -207,7 +211,9 @@ class LyricReaderState extends State<LyricsReader>
               textDirection: TextDirection.ltr,
             ));
       }
+      setRemarkInfo(drawInfo,lineIndex,widget.ui);
       element.drawInfo = drawInfo;
+      lineIndex ++;
     });
   }
 
@@ -465,6 +471,33 @@ class LyricReaderState extends State<LyricsReader>
       element.drawHeight = painter.height;
       element.drawWidth = painter.width;
     });
+  }
+  /// 计算标注
+  void setRemarkInfo(LyricDrawInfo info, int lineIndex,LyricUI ui) {
+    if (widget.remarkMap == null || widget.remarkMap!.isEmpty) {
+      return;
+    }
+    List<LyricRemarkInfo> list = widget.remarkMap?[lineIndex] ?? [];
+    for (LyricRemarkInfo element in list) {
+      if (element.style == 'text') {
+        TextPainter painter =
+            getTextPaint(element.value, widget.ui.getOtherMainTextStyle());
+        if (element.isTop) {
+          info.topRemarkPainter[element.index] = painter;
+        } else {
+          info.bottomRemarkPainter[element.index] = painter;
+        }
+      }
+      if (element.style == 'image') {
+        if (element.image != null) {
+          if (element.isTop) {
+            info.topRemarkImages[element.index] = element.image!;
+          } else {
+            info.bottomRemarkImages[element.index] = element.image!;
+          }
+        }
+      }
+    }
   }
 
   /// enable highlight animation

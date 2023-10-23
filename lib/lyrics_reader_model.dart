@@ -1,3 +1,6 @@
+
+import 'dart:ui' as ui;
+
 import 'package:collection/collection.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_lyric/lyric_helper.dart';
@@ -93,6 +96,11 @@ class LyricDrawInfo {
   TextPainter? playingMainTextPainter;
   TextPainter? playingExtTextPainter;
   List<LyricInlineDrawInfo> inlineDrawList = [];
+
+  Map<int, TextPainter> topRemarkPainter = {}; //上边的RemarkPainter
+  Map<int, ui.Image> topRemarkImages = {}; //上面的RemarkImage
+  Map<int, TextPainter> bottomRemarkPainter = {}; //下边的RemarkPainter
+  Map<int, ui.Image> bottomRemarkImages = {}; //下面的RemarkImage
 }
 
 class LyricInlineDrawInfo {
@@ -116,6 +124,14 @@ class LyricSpanInfo {
   int get end => start + duration;
 
   int get endIndex => index + length;
+}
+
+class LyricRemarkInfo {
+  int index = 0;
+  String style = "text";
+  String value = "";
+  ui.Image? image;
+  bool isTop = true;//是否在上方
 }
 
 extension LyricsReaderModelExt on LyricsReaderModel? {
