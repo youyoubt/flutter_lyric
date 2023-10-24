@@ -481,7 +481,7 @@ class LyricReaderState extends State<LyricsReader>
     for (LyricRemarkInfo element in list) {
       if (element.style == 'text') {
         TextPainter painter =
-            getTextPaint(element.value, widget.ui.getOtherMainTextStyle());
+            getTextPaint(element.value, widget.ui.getRemarkTextStyle());
         if (element.isTop) {
           info.topRemarkPainter[element.index] = painter;
         } else {

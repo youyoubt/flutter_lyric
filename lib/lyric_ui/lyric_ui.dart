@@ -64,6 +64,19 @@ abstract class LyricUI {
 
   Color getLyricHightlightColor() => Colors.amber;
 
+  double getRemarkImageSize() => 40;
+
+  TextStyle getRemarkTextStyle() => TextStyle(
+    color: Colors.white,
+    fontSize: 20
+  );
+
+  Color getRemarkHightLightColor() => Colors.red;
+
+  Color getRemarkTextBgColor() => Color(0xFF7C8588);
+
+  bool isPlayingLineOffset() => false; //播放行是否偏移
+
   @override
   String toString() {
     return '${getPlayingMainTextStyle()}'

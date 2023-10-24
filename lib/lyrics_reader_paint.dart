@@ -167,7 +167,7 @@ class LyricsReaderPaint extends ChangeNotifier implements CustomPainter {
     var nextOffsetY = drawOffsetY + otherLineHeight;
     if (element.hasMain) {
       if (isPlay) {
-        drawRemarkText(element, canvas, mainTextPainter, nextOffsetY);
+        drawRemark(element, canvas, mainTextPainter, nextOffsetY);
       }
       otherLineHeight += drawText(
           canvas, mainTextPainter, nextOffsetY, isPlay ? element : null);
@@ -184,9 +184,10 @@ class LyricsReaderPaint extends ChangeNotifier implements CustomPainter {
   }
 
   Paint imagePaint = Paint();
+  List<Rect> remarkPoints = [];
 
   /// 绘制上半部分标注
-  void drawRemarkText(LyricsLineModel model, Canvas canvas,
+  void drawRemark(LyricsLineModel model, Canvas canvas,
       TextPainter? mainTextPainter, double nextOffsetY) {
     String text = mainTextPainter?.plainText ?? "哈";
     double allLength = mainTextPainter?.width ?? 1; //总长度
@@ -197,55 +198,99 @@ class LyricsReaderPaint extends ChangeNotifier implements CustomPainter {
     //大约每个字的长度
     double perSize = allLength / textLength;
     //计算左侧的距离
-    double mainLineOffset = getLineOffsetX(mainTextPainter!);
+    double mainLineOffset = getLineOffsetX(mainTextPainter!,isPlay: true);
     //每个字的高度
     double heightOffset = mainTextPainter.height;
+
+    //清空高亮部分
+    remarkPoints.clear();
+
     // 绘制上边标注文字
     model.drawInfo?.topRemarkPainter.forEach((key, value) {
-      double textOffset = key * perSize;
-      Offset offset =
-          Offset(mainLineOffset + textOffset, nextOffsetY - value.height);
-      //背景
-      canvas.drawRect(
-          Rect.fromLTWH(offset.dx, offset.dy, value.width, value.height),
-          lightBlendPaint
-            ..color = Color(0x9964B5F6)
-            ..strokeCap = StrokeCap.round);
-      value.paint(canvas, offset);
+      drawRemarkText(canvas, key, perSize, mainLineOffset, nextOffsetY, value,
+          heightOffset, true);
     });
+    double imageSize = lyricUI.getRemarkImageSize();
     //绘制上边标注图片
     model.drawInfo?.topRemarkImages.forEach((index, image) {
-      double textOffset = index * perSize;
-      Offset offset = Offset(mainLineOffset + textOffset, nextOffsetY - 30);
-      Rect src =
-          Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
-      double width = image.width * 30 / image.height;
-      Rect dst = Rect.fromLTWH(offset.dx, offset.dy, width, 30);
-      canvas.drawImageRect(image, src, dst, imagePaint..isAntiAlias = true);
+      drawRemarkImage(canvas, image, index, perSize, mainLineOffset,
+          nextOffsetY, imageSize, heightOffset, true);
     });
     // 绘制下边标注文字
     model.drawInfo?.bottomRemarkPainter.forEach((key, value) {
-      double textOffset = key * perSize;
-      Offset offset =
-          Offset(mainLineOffset + textOffset, nextOffsetY + heightOffset);
-      //背景
-      canvas.drawRect(
-          Rect.fromLTWH(offset.dx, offset.dy, value.width, value.height),
-          lightBlendPaint
-            ..color = Color(0x9964B5F6)
-            ..strokeCap = StrokeCap.round);
-      value.paint(canvas, offset);
+      drawRemarkText(canvas, key, perSize, mainLineOffset, nextOffsetY, value,
+          heightOffset, false);
     });
     //绘制下边标注图片
     model.drawInfo?.bottomRemarkImages.forEach((index, image) {
-      double textOffset = index * perSize;
-      Offset offset =
-          Offset(mainLineOffset + textOffset, nextOffsetY + heightOffset);
-      Rect src =
-          Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
-      double width = image.width * 30 / image.height;
-      Rect dst = Rect.fromLTWH(offset.dx, offset.dy, width, 30);
-      canvas.drawImageRect(image, src, dst, imagePaint..isAntiAlias = true);
+      drawRemarkImage(canvas, image, index, perSize, mainLineOffset,
+          nextOffsetY, imageSize, heightOffset, false);
+    });
+  }
+
+  /// 绘制文本标注
+  void drawRemarkText(
+      Canvas canvas,
+      int index,
+      double perSize,
+      double mainLineOffset,
+      double nextOffsetY,
+      TextPainter painter,
+      double heightOffset,
+      bool isTop) {
+    double textOffset = index * perSize;
+    double offsetY =
+        isTop ? (nextOffsetY - painter.height) : (nextOffsetY + heightOffset);
+    Offset offset = Offset(mainLineOffset + textOffset, offsetY);
+    //背景
+    canvas.drawRect(
+        Rect.fromLTWH(offset.dx, offset.dy, painter.width, painter.height),
+        lightBlendPaint
+          ..color = lyricUI.getRemarkTextBgColor()
+          ..strokeCap = StrokeCap.round);
+    painter.paint(canvas, offset);
+    //底部高亮
+    offset = Offset(mainLineOffset + textOffset, nextOffsetY);
+    remarkPoints
+        .add(Rect.fromLTWH(offset.dx, offset.dy, perSize, heightOffset));
+  }
+
+  /// 绘制图片标注
+  void drawRemarkImage(
+      Canvas canvas,
+      image,
+      int index,
+      double perSize,
+      double mainLineOffset,
+      double nextOffsetY,
+      double imageSize,
+      double heightOffset,
+      bool isTop) {
+    //左边偏移
+    double textOffset = index * perSize;
+    //Y轴偏移
+    double offsetY =
+        isTop ? (nextOffsetY - imageSize) : (nextOffsetY + heightOffset);
+    Offset offset = Offset(mainLineOffset + textOffset, offsetY);
+    Rect src =
+        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+    double width = image.width * imageSize / image.height;
+    //居中显示
+    double dx = (perSize - width) / 2 + offset.dx;
+    Rect dst = Rect.fromLTWH(dx, offset.dy, width, imageSize);
+    canvas.drawImageRect(image, src, dst, imagePaint..isAntiAlias = true);
+
+    //底部高亮
+    offset = Offset(mainLineOffset + textOffset, nextOffsetY);
+    remarkPoints
+        .add(Rect.fromLTWH(offset.dx, offset.dy, perSize, heightOffset));
+  }
+
+  /// 标注 文字需要高亮部分
+  void drawRemarkHighlight(Canvas canvas) {
+    //绘制高亮
+    remarkPoints.forEach((element) {
+      canvas.drawRect(element, lightBlendPaint..color = lyricUI.getRemarkHightLightColor());
     });
   }
 
@@ -297,7 +342,7 @@ class LyricsReaderPaint extends ChangeNotifier implements CustomPainter {
       return lineHeight;
     }
     var isEnableLight = element != null && lyricUI.enableHighlight();
-    var offset = Offset(getLineOffsetX(paint), offsetY);
+    var offset = Offset(getLineOffsetX(paint,isPlay: element != null), offsetY);
     if (isEnableLight) {
       canvas.saveLayer(
           Rect.fromLTWH(0, 0, mSize.width, mSize.height), layerPaint);
@@ -305,6 +350,7 @@ class LyricsReaderPaint extends ChangeNotifier implements CustomPainter {
 
     paint.paint(canvas, offset);
     if (isEnableLight) {
+      drawRemarkHighlight(canvas);
       drawHighlight(element!, canvas, paint, offset);
       canvas.restore();
     }
@@ -312,12 +358,15 @@ class LyricsReaderPaint extends ChangeNotifier implements CustomPainter {
   }
 
   ///获取行绘制横向坐标
-  double getLineOffsetX(TextPainter textPainter) {
+  double getLineOffsetX(TextPainter textPainter,{bool isPlay = false}) {
     switch (lyricUI.getLyricHorizontalAlign()) {
       case LyricAlign.LEFT:
         return 0;
       case LyricAlign.CENTER:
-        return (mSize.width - textPainter.width) / 2;
+        if (!isPlay || !lyricUI.isPlayingLineOffset()) {
+          return (mSize.width - textPainter.width) / 2;
+        }
+        return (mSize.width - textPainter.width) / 2 - textPainter.width / 2;
       case LyricAlign.RIGHT:
         return mSize.width - textPainter.width;
       default:
