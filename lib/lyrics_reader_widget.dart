@@ -479,7 +479,7 @@ class LyricReaderState extends State<LyricsReader>
     }
     List<LyricRemarkInfo> list = widget.remarkMap?[lineIndex] ?? [];
     for (LyricRemarkInfo element in list) {
-      if (element.style == 'text') {
+      if (element.style == 'Text') {
         TextPainter painter =
             getTextPaint(element.value, widget.ui.getRemarkTextStyle());
         if (element.isTop) {
@@ -488,7 +488,7 @@ class LyricReaderState extends State<LyricsReader>
           info.bottomRemarkPainter[element.index] = painter;
         }
       }
-      if (element.style == 'image') {
+      if (element.style == 'Img') {
         if (element.image != null) {
           if (element.isTop) {
             info.topRemarkImages[element.index] = element.image!;
