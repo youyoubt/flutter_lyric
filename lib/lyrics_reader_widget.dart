@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_lyric/lyric_ui/lyric_ui.dart';
@@ -31,6 +32,7 @@ class LyricsReader extends StatefulWidget {
   final SelectLineBuilder? selectLineBuilder;
   final EmptyBuilder? emptyBuilder;
   final Map<int, List<LyricRemarkInfo>>? remarkMap;
+  final int startCircleOffset;
 
   @override
   State<StatefulWidget> createState() => LyricReaderState();
@@ -46,6 +48,7 @@ class LyricsReader extends StatefulWidget {
     this.playing,
     this.remarkMap,
     this.emptyBuilder,
+    this.startCircleOffset = 3000
   }) : ui = lyricUi ?? UINetease();
 }
 
@@ -103,9 +106,11 @@ class LyricReaderState extends State<LyricsReader>
       lyricPaint.lyricUI = widget.ui;
       handleSize();
       selectLine(widget.model?.getCurrentLine(widget.position) ?? 0);
-      scrollToPlayLine();
       handleHighlight();
+      scrollToPlayLine();
     }
+    handleStartCircle();
+    startAnimationNow();
     if (oldWidget.position != widget.position) {
       selectLineAndScrollToPlayLine();
     }
@@ -114,7 +119,7 @@ class LyricReaderState extends State<LyricsReader>
         lyricPaint.highlightWidth = 0;
       } else {
         if (widget.playing == true) {
-          _highlightController?.forward();
+          // _highlightController?.forward();
         } else {
           _highlightController?.stop();
         }
@@ -123,12 +128,14 @@ class LyricReaderState extends State<LyricsReader>
   }
 
   void selectLineAndScrollToPlayLine([bool animation = true]) {
-    selectLine(widget.model?.getCurrentLine(widget.position) ?? 0);
+    int currentLine = widget.model?.getCurrentLine(widget.position) ?? 0;
+    selectLine(currentLine);
     if (cacheLine != lyricPaint.playingIndex) {
       lyricPaint.highlightWidth = 0;
       cacheLine = lyricPaint.playingIndex;
       handleHighlight();
       scrollToPlayLine(animation);
+      handleStartCircle();
     }
   }
 
@@ -142,7 +149,17 @@ class LyricReaderState extends State<LyricsReader>
   }
 
   void selectLine(int line) {
-    lyricPaint.playingIndex = line;
+    int currentLine = line;
+    LyricsLineModel? lineModel = widget.model?.lyrics[currentLine];
+    int maxLine = (widget.model?.lyrics.length ?? 1) - 1;
+    if (lineModel != null) {
+      int offset = lineModel.endTime ?? 0 - (lineModel.realEndTime ?? 0);
+      if (offset > widget.startCircleOffset &&
+          widget.position > (lineModel.realEndTime ?? 0)) {
+        currentLine++;
+      }
+    }
+    lyricPaint.playingIndex = min(currentLine, maxLine);
   }
 
   ///update progress after verify
@@ -211,7 +228,7 @@ class LyricReaderState extends State<LyricsReader>
               textDirection: TextDirection.ltr,
             ));
       }
-      setRemarkInfo(drawInfo,lineIndex,widget.ui);
+      setRemarkInfo(drawInfo, lineIndex, widget.ui);
       element.drawInfo = drawInfo;
       lineIndex ++;
     });
@@ -447,6 +464,7 @@ class LyricReaderState extends State<LyricsReader>
   disposeHighlight() {
     _highlightController?.dispose();
     _highlightController = null;
+    isSetHighLight = false;
   }
 
   @override
@@ -503,23 +521,86 @@ class LyricReaderState extends State<LyricsReader>
   /// enable highlight animation
   /// if playing status is null,no highlight.
   void handleHighlight() {
+    handleNewHighlight();
+    // var lyrics = widget.model?.lyrics;
+    // if (!widget.ui.enableHighlight() ||
+    //     widget.playing == null ||
+    //     widget.model.isNullOrEmpty ||
+    //     lyricPaint.playingIndex >= lyrics!.length) return;
+    // var line = lyrics[lyricPaint.playingIndex];
+    // List<TweenSequenceItem> items = [];
+    // var width = 0.0;
+    // double? firstBegin;
+    // final spans = line.spanList ?? line.defaultSpanList;
+    // final blankTime = (line.startTime ?? 0) - widget.position;
+    // int allDuration = 0;
+    // if (blankTime > 0) {
+    //   allDuration += blankTime;
+    //   items.add(TweenSequenceItem(
+    //       tween: Tween(begin: 0.0, end: 0.0), weight: blankTime.toDouble()));
+    // }
+    // for (LyricSpanInfo element in spans) {
+    //   if (widget.position >= element.end) {
+    //     width += element.drawWidth;
+    //     continue;
+    //   }
+    //   var ratio = (widget.position - element.start) / element.duration;
+    //   if (ratio < 0) {
+    //     ratio = 0;
+    //   }
+    //   var begin = width += (ratio * element.drawWidth);
+    //   firstBegin ??= begin;
+    //   items.add(TweenSequenceItem(
+    //       tween: Tween(begin: begin, end: width += element.drawWidth),
+    //       weight: element.duration.toDouble()));
+    //   allDuration += element.duration;
+    // }
+    // disposeHighlight();
+    // if (items.isEmpty) {
+    //   lyricPaint.highlightWidth = width;
+    //   return;
+    // }
+    // // final highlightDuration = (line.endTime ?? 0) - widget.position;
+    // final highlightDuration = allDuration;
+    // _highlightController = AnimationController(
+    //   duration:
+    //       Duration(milliseconds: highlightDuration > 0 ? highlightDuration : 0),
+    //   // duration: Duration(milliseconds: 300),
+    //   vsync: this,
+    // );
+    // var animate = TweenSequence(items)
+    //     .chain(CurveTween(curve: Curves.easeInOut))
+    //     .animate(_highlightController!)
+    //   ..addStatusListener((status) {
+    //     if (status == AnimationStatus.completed) {
+    //       disposeHighlight();
+    //     }
+    //   });
+    // animate.addListener(() {
+    //   lyricPaint.highlightWidth = animate.value;
+    //   handleStartCircle();
+    // });
+    // if (widget.playing == true) {
+    //   _highlightController?.forward();
+    // } else {
+    //   lyricPaint.highlightWidth = firstBegin ?? width;
+    // }
+  }
+
+  bool isSetHighLight = false;
+
+  handleNewHighlight(){
     var lyrics = widget.model?.lyrics;
     if (!widget.ui.enableHighlight() ||
         widget.playing == null ||
         widget.model.isNullOrEmpty ||
         lyricPaint.playingIndex >= lyrics!.length) return;
     var line = lyrics[lyricPaint.playingIndex];
-    List<TweenSequenceItem> items = [];
     var width = 0.0;
     double? firstBegin;
     final spans = line.spanList ?? line.defaultSpanList;
-    final blankTime = (line.startTime ?? 0) - widget.position;
+    List<TweenSequenceItem> items = [];
     int allDuration = 0;
-    if (blankTime > 0) {
-      allDuration += blankTime;
-      items.add(TweenSequenceItem(
-          tween: Tween(begin: 0.0, end: 0.0), weight: blankTime.toDouble()));
-    }
     for (LyricSpanInfo element in spans) {
       if (widget.position >= element.end) {
         width += element.drawWidth;
@@ -531,6 +612,7 @@ class LyricReaderState extends State<LyricsReader>
       }
       var begin = width += (ratio * element.drawWidth);
       firstBegin ??= begin;
+
       items.add(TweenSequenceItem(
           tween: Tween(begin: begin, end: width += element.drawWidth),
           weight: element.duration.toDouble()));
@@ -545,7 +627,7 @@ class LyricReaderState extends State<LyricsReader>
     final highlightDuration = allDuration;
     _highlightController = AnimationController(
       duration:
-          Duration(milliseconds: highlightDuration > 0 ? highlightDuration : 0),
+      Duration(milliseconds: highlightDuration > 0 ? highlightDuration : 0),
       // duration: Duration(milliseconds: 300),
       vsync: this,
     );
@@ -560,10 +642,96 @@ class LyricReaderState extends State<LyricsReader>
     animate.addListener(() {
       lyricPaint.highlightWidth = animate.value;
     });
-    if (widget.playing == true) {
-      _highlightController?.forward();
+    if (widget.playing == true ) {
+      // _highlightController?.forward();
     } else {
       lyricPaint.highlightWidth = firstBegin ?? width;
     }
+    isSetHighLight = true;
+  }
+
+  startAnimationNow() {
+    if (widget.playing == false) {
+      handleNewHighlight();//暂停情况下重新计算宽度，保证hightLight的位置是正确的
+      // if (_highlightController?.isAnimating == true) {
+      //   handleNewHighlight();
+      // }
+      return;
+    }
+    //正在播放情况下
+    var lyrics = widget.model?.lyrics;
+    if (!widget.ui.enableHighlight() ||
+        widget.playing == null ||
+        widget.model.isNullOrEmpty ||
+        lyricPaint.playingIndex >= lyrics!.length) return;
+    //动画未播放
+    if (_highlightController?.isAnimating == false) {
+      LyricsLineModel line = lyrics[lyricPaint.playingIndex];
+      int start = line.spanList?.first.start ?? 0;
+      if (widget.position >= start) {
+        isSetHighLight = false;
+        _highlightController?.forward();
+      } else if (!isSetHighLight) {
+        handleNewHighlight();
+      }
+      return;
+    }
+    //点击position情况下，动画先暂停
+    if (_highlightController?.isAnimating == true) {
+      LyricsLineModel line = lyrics[lyricPaint.playingIndex];
+      int start = line.spanList?.first.start ?? 0;
+      if (widget.position < start - 100) {
+        handleNewHighlight();
+      }
+    }
+  }
+
+  /// 计算播放前的三个小圆点
+  handleStartCircle() {
+    var lyrics = widget.model?.lyrics;
+    if (widget.playing == null ||
+        widget.model.isNullOrEmpty ||
+        lyricPaint.playingIndex >= lyrics!.length) return;
+    //如果是第一行情况下，需要显示三个小圆点
+    bool isShowCircle = lyricPaint.playingIndex == 0;
+    LyricsLineModel line = lyrics[lyricPaint.playingIndex];
+    if (lyricPaint.playingIndex > 0) {
+      LyricsLineModel lastLine = lyrics[lyricPaint.playingIndex - 1];
+      int lastLineEndTime = lastLine.realEndTime ?? 0;
+      int currentLineEndTime = line.realEndTime ?? 0;
+      //当前行与上一行相差大于10秒时，显示3个小圆圈
+      if (currentLineEndTime - lastLineEndTime > 8000) {
+        isShowCircle = true;
+      }
+    }
+    if (!isShowCircle) {
+      lyricPaint.circleCount = 0;
+      return;
+    }
+    int timeOffset = (line.startTime ?? 0) - widget.position;
+    // 0-1秒显示一个小圆圈
+    // 1-3秒显示2个小圆圈
+    // 3秒以上显示3个小圆圈
+    //每个小圆圈显示800ms
+    const splitTime = 800;
+    if (timeOffset <= 100) {
+      lyricPaint.circleCount = 0;
+    } else if (timeOffset > 100 && timeOffset <= splitTime) {
+      lyricPaint.circleCount = 1;
+    } else if (timeOffset > splitTime && timeOffset < splitTime * 2) {
+      lyricPaint.circleCount = 2;
+    } else {
+      lyricPaint.circleCount = 3;
+    }
+    // if (timeOffset <= 100) {
+    //   lyricPaint.circleCount = 0;
+    // } else if (timeOffset >= 3000) {
+    //   lyricPaint.circleCount = 3;
+    // } else if (timeOffset >= 2000 && timeOffset < 3000) {
+    //   lyricPaint.circleCount = 2;
+    // } else if (timeOffset > 0 && timeOffset <= 1000) {
+    //   lyricPaint.circleCount = 1;
+    // }
+    // print('set circleCount = ${lyricPaint.circleCount} ,offset=$timeOffset');
   }
 }

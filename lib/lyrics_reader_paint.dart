@@ -31,11 +31,13 @@ class LyricsReaderPaint extends ChangeNotifier implements CustomPainter {
   double totalHeight = 0;
 
   var cachePlayingIndex = -1;
-
   clearCache() {
     cachePlayingIndex = -1;
     highlightWidth = 0;
+    circleCount = 0;
   }
+
+  var circleCount = 0;//小圆圈数量
 
   ///check offset illegal
   ///true is OK
@@ -109,6 +111,7 @@ class LyricsReaderPaint extends ChangeNotifier implements CustomPainter {
 
   ///给外部C位位置
   var centerY = 0.0;
+  Paint gradientPainter = Paint();
 
   @override
   bool? hitTest(Offset position) => null;
@@ -135,6 +138,25 @@ class LyricsReaderPaint extends ChangeNotifier implements CustomPainter {
         }
       }
       drawOffset = nextOffset;
+    }
+
+    if (size.height > 200) {
+      Rect upRect = Rect.fromLTRB(0, 0, size.width, 100);
+      gradientPainter.shader = LinearGradient(
+        colors: [Color(0XDD16181A), Colors.transparent],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(upRect);
+      canvas.drawRect(upRect, gradientPainter);
+
+      Rect downRect =
+          Rect.fromLTRB(0, size.height - 100, size.width, size.height);
+      gradientPainter.shader = LinearGradient(
+        colors: [Colors.transparent, Color(0XDD16181A)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(downRect);
+      canvas.drawRect(downRect, gradientPainter);
     }
   }
 
@@ -195,12 +217,25 @@ class LyricsReaderPaint extends ChangeNotifier implements CustomPainter {
     if (textLength == 0) {
       textLength = 1;
     }
+
     //大约每个字的长度
     double perSize = allLength / textLength;
     //计算左侧的距离
     double mainLineOffset = getLineOffsetX(mainTextPainter!,isPlay: true);
     //每个字的高度
     double heightOffset = mainTextPainter.height;
+
+    //绘制小圆点
+    if (circleCount > 0) {
+      double circleSize = 20;
+      double offsetY = nextOffsetY + heightOffset / 2;
+      for (int i = 0; i < circleCount; i++) {
+        Offset of =
+            Offset(mainLineOffset - (circleSize * 2 + 10) * (i + 1), offsetY);
+        canvas.drawCircle(
+            of, circleSize, lightBlendPaint..color = Colors.white);
+      }
+    }
 
     //清空高亮部分
     remarkPoints.clear();
@@ -347,7 +382,6 @@ class LyricsReaderPaint extends ChangeNotifier implements CustomPainter {
       canvas.saveLayer(
           Rect.fromLTWH(0, 0, mSize.width, mSize.height), layerPaint);
     }
-
     paint.paint(canvas, offset);
     if (isEnableLight) {
       drawRemarkHighlight(canvas);

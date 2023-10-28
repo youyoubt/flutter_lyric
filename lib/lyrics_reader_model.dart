@@ -29,6 +29,9 @@ class LyricsReaderModel {
 
   double computeScroll(int toLine, int playLine, LyricUI ui) {
     if (toLine <= 0) return 0;
+    if (lyrics.length - 1 <= toLine) {
+      toLine = lyrics.length - 1;
+    }
     var targetLine = lyrics[toLine];
     double offset = 0;
     if (!targetLine.hasExt && !targetLine.hasMain) {
@@ -61,7 +64,8 @@ class LyricsLineModel {
   String? mainText;
   String? extText;
   int? startTime;
-  int? endTime;
+  int? endTime;//下一行的开始时间
+  int? realEndTime;//实际上该行的结束时间
   List<LyricSpanInfo>? spanList;
 
   //绘制信息

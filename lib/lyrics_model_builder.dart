@@ -47,6 +47,8 @@ class LyricsModelBuilder {
           currLine.endTime = (currLine.startTime ?? 0) + defaultLineDuration;
         }
       }
+      //真正的结束时间
+      currLine.realEndTime = currLine.spanList?.last.end??0;
     }
     if (isMain) {
       _lyricModel.lyrics.clear();
